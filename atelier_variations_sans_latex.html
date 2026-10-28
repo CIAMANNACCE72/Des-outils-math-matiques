@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atelier de tableaux de variations</title>
+
+  <script>
+    window.MathJax = {
+      svg: { fontCache: 'none' },
+      startup: { typeset: false }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #eef2f5;
+      color: #182632;
+      font: 18px/1.5 Arial, sans-serif;
+    }
+    main {
+      max-width: 1400px;
+      margin: auto;
+      padding: 28px;
+      background: white;
+      border-radius: 12px;
+    }
+    h1 { font-size: 1.7rem; }
+    h2 { font-size: 1.25rem; }
+    input, select, button {
+      font: inherit;
+      padding: 10px;
+      border: 1px solid #8999a8;
+      border-radius: 5px;
+    }
+    input { width: 100%; min-width: 90px; }
+    button { cursor: pointer; background: #edf2f7; margin: 4px; }
+    button.primary { background: #254c68; color: white; }
+    label { display: block; margin: 12px 0; }
+    .scroll { overflow: auto; margin: 20px 0; }
+    table { border-collapse: collapse; min-width: 1150px; width: 100%; }
+    th, td { border: 1px solid #b5c0c9; padding: 9px; }
+    th { background: #edf2f6; }
+    .toolbar {
+      background: #f3f6f9;
+      padding: 12px;
+      border: 1px solid #b5c0c9;
+      margin: 18px 0;
+    }
+    .intervals { display: flex; flex-wrap: wrap; gap: 16px; }
+    .interval { border: 1px solid #b5c0c9; padding: 14px; border-radius: 6px; }
+    .note { color: #405260; font-size: 1rem; }
+    #status { color: #7a410d; }
+    #outputTitle, #preview, #outputDomain { text-align: center; margin: 18px 0; }
+    #output > svg { width: 100%; min-width: 850px; height: auto; display: block; }
+    dialog { border: 1px solid #8999a8; border-radius: 10px; width: 480px; max-width: 95%; }
+    dialog::backdrop { background: #0005; }
+    @media print {
+      body { padding: 0; background: white; }
+      main { padding: 0; }
+      .editor, h1, #status { display: none !important; }
+      #output { overflow: visible; }
+      #output > svg { min-width: 0; }
+    }
+  </style>
+</head>
+
+<body>
+<main>
+  <h1>Atelier de tableaux de variations</h1>
+
+  <section class="editor">
+    <p>
+      Construisez votre tableau : les signes, les valeurs et les flèches sont
+      vos réponses. Le logiciel les met en forme sans les calculer ni les vérifier.
+    </p>
+
+    <button id="new">Nouveau tableau vierge</button>
+    <select id="example" aria-label="Exemple">
+      <option value="inverse">Fonction inverse</option>
+      <option value="quadratic">Second degré</option>
+      <option value="absolute">Valeur absolue</option>
+    </select>
+    <button id="load">Charger l’exemple</button>
+    <button id="add">Ajouter un point intérieur</button>
+
+    <div class="toolbar">
+      <p>
+        Saisissez directement vos expressions : <code>2x^2-3x+1</code>,
+        <code>1/x</code>, <code>sqrt(x)</code>, <code>e^x</code>, <code>ln(x)</code>,
+        <code>pi</code>, <code>+inf</code>, <code>-inf</code>.
+        Elles sont converties automatiquement. Les boutons restent disponibles.
+      </p>
+      <button data-tool="fraction">Fraction</button>
+      <button data-tool="power">Puissance</button>
+      <button data-tool="exponential">Exponentielle</button>
+      <button data-tool="root">Racine carrée</button>
+      <button data-insert="+\infty">+∞</button>
+      <button data-insert="-\infty">−∞</button>
+      <button data-insert="\ln(x)">ln(x)</button>
+      <button id="previewField">Aperçu du champ sélectionné</button>
+    </div>
+
+    <label>
+      Expression de la fonction
+      <input id="formula" spellcheck="false"
+        placeholder="Exemple : 2x^2 - 3x + 1, 1/x, sqrt(x), e^x, ln(x), pi">
+      <small>Saisie directe acceptée : <code>2x^2-3x+1</code>, <code>1/x</code>,
+      <code>sqrt(x)</code>, <code>e^x</code>, <code>ln(x)</code>, <code>pi</code>,
+      <code>+inf</code>, <code>-inf</code>. La notation LaTeX reste acceptée.</small>
+    </label>
+    <label>
+      Domaine ou commentaire, en texte libre
+      <input id="domain">
+    </label>
+    <div id="preview"></div>
+
+    <p class="note">
+      La valeur de f′(a) est facultative aux points ordinaires. Un champ vide
+      n’affiche rien. Pour un zéro de la dérivée, le logiciel affiche 0 ;
+      pour un point non dérivable, il affiche ND.
+      Les signes sur les intervalles se renseignent séparément.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Abscisse a</th>
+            <th>Nature du point</th>
+            <th>Valeur f′(a), facultative</th>
+            <th>Valeur f(a)</th>
+            <th>Limite à gauche</th>
+            <th>Limite à droite</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="points"></tbody>
+      </table>
+    </div>
+
+    <h2>Signes et variations sur les intervalles</h2>
+    <div id="intervals" class="intervals"></div>
+
+    <p class="note">
+      Saisissez les abscisses dans l’ordre croissant : cet ordre n’est pas vérifié.
+      Pour −∞ ou +∞, choisissez « Borne ouverte / infini » et renseignez la limite
+      du côté du domaine. La hauteur des flèches est schématique, sans échelle.
+      Les points définis présentant un saut ne sont pas pris en charge.
+    </p>
+
+    <button id="render" class="primary">Actualiser le tableau</button>
+    <button id="print">Imprimer / PDF</button>
+    <button id="export">Exporter le tableau en SVG</button>
+    <button id="save">Sauvegarder la construction</button>
+    <button id="open">Ouvrir une construction</button>
+    <input id="file" type="file" accept=".json,application/json" hidden>
+  </section>
+
+  <p id="status" role="status">Chargement des notations mathématiques…</p>
+  <div id="outputTitle"></div>
+  <div id="output" class="scroll"></div>
+  <div id="outputDomain"></div>
+  <p class="note">
+    Double barre : point exclu ou borne ouverte. ND : fonction définie mais
+    non dérivable. Les expressions de chaque côté d’une double barre sont des limites.
+  </p>
+
+  <dialog id="dialog">
+    <h2 id="dialogTitle"></h2>
+    <label><span id="labelA"></span><input id="argA"></label>
+    <label id="secondArgument"><span id="labelB"></span><input id="argB"></label>
+    <div id="dialogPreview"></div>
+    <button id="dialogShow">Aperçu</button>
+    <button id="dialogInsert">Insérer</button>
+    <button id="dialogCancel">Annuler</button>
+  </dialog>
+</main>
+
+<script>
+  'use strict';
+
+  // Conversion d'une saisie simplifiee vers LaTeX.
+  function friendlyToLatex(raw) {
+    const BS = String.fromCharCode(92);
+    if (typeof raw !== 'string') return raw;
+    const text = raw.trim();
+    if (!text) return text;
+    if (text.includes(BS)) return text;
+
+    let s = text
+      .replace(new RegExp('[' + BS + 'u2212' + BS + 'u2013' + BS + 'u2014]', 'g'), '-')
+      .replace(new RegExp('[' + BS + 'u00d7' + BS + 'u00b7]', 'g'), '*')
+      .replace(new RegExp(BS + 'u00f7', 'g'), '/')
+      .replace(new RegExp(BS + 'u03c0', 'g'), 'pi')
+      .replace(new RegExp(BS + 'u221e', 'g'), 'inf')
+      .replace(new RegExp(BS + 'u221a', 'g'), 'sqrt')
+      .replace(new RegExp(BS + 'u00b2', 'g'), '^2')
+      .replace(new RegExp(BS + 'u00b3', 'g'), '^3')
+      .replace(new RegExp(BS + 'u2264', 'g'), 'le')
+      .replace(new RegExp(BS + 'u2265', 'g'), 'ge')
+      .replace(new RegExp(BS + 'u2260', 'g'), 'neq')
+      .replace(new RegExp(BS + 's+', 'g'), ' ');
+
+    const functions = {
+      sqrt: 'SQRT', racine: 'SQRT', rac: 'SQRT',
+      ln: 'LN', exp: 'EXP', sin: 'SIN', cos: 'COS',
+      tan: 'TAN', arctan: 'ARCTAN', arcsin: 'ARCSIN', arccos: 'ARCCOS'
+    };
+
+    let i = 0;
+    function skipSpaces() { while (i < s.length && s[i] === ' ') i++; }
+    function peek() { skipSpaces(); return s[i]; }
+
+    function parseExpression() {
+      let sign = '';
+      const first = peek();
+      if (first === '+' || first === '-') {
+        sign = first;
+        i++;
+      }
+      let left = parseTerm();
+      if (sign === '-') left = '-' + left;
+      else if (sign === '+') left = '+' + left;
+      while (true) {
+        const c = peek();
+        if (c === '+' || c === '-') {
+          i++;
+          left += c + parseTerm();
+        } else break;
+      }
+      return left;
+    }
+
+    function parseTerm() {
+      let left = parsePower();
+      while (true) {
+        const c = peek();
+        if (c === '*') {
+          i++;
+          left += BS + 'cdot ' + parsePower();
+        } else if (c === '/') {
+          i++;
+          left = BS + 'frac{' + left + '}{' + parsePower() + '}';
+        } else if (c && /[0-9a-zA-Z(]/.test(c)) {
+          left += parsePower();
+        } else break;
+      }
+      return left;
+    }
+
+    function parsePower() {
+      const base = parseAtom();
+      if (peek() === '^') {
+        i++;
+        return base + '^{' + parseAtom() + '}';
+      }
+      return base;
+    }
+
+    function parseAtom() {
+      skipSpaces();
+      const c = s[i];
+      if (c === undefined) return '';
+
+      if (c === '(') {
+        i++;
+        const inner = parseExpression();
+        skipSpaces();
+        if (s[i] === ')') i++;
+        return BS + 'left(' + inner + BS + 'right)';
+      }
+
+      if (c === '|') {
+        i++;
+        const inner = parseExpression();
+        skipSpaces();
+        if (s[i] === '|') i++;
+        return BS + 'left|' + inner + BS + 'right|';
+      }
+
+      // Commande LaTeX deja ecrite par l'utilisateur.
+      if (c === BS) {
+        i++;
+        let name = '';
+        while (i < s.length && /[a-zA-Z]/.test(s[i])) {
+          name += s[i];
+          i++;
+        }
+        return BS + name;
+      }
+
+      if (/[0-9.]/.test(c)) {
+        const start = i;
+        while (i < s.length && /[0-9.]/.test(s[i])) i++;
+        return s.slice(start, i);
+      }
+
+      if (/[a-zA-Z]/.test(c)) {
+        const start = i;
+        while (i < s.length && /[a-zA-Z]/.test(s[i])) i++;
+        const name = s.slice(start, i);
+
+        if (/^pi$/i.test(name)) return BS + 'pi ';
+        if (/^e$/i.test(name)) return 'e';
+        if (/^inf$/i.test(name)) return BS + 'infty';
+
+        let key = Object.keys(functions).find(k =>
+          new RegExp('^' + k + '$', 'i').test(name));
+        let rest = '';
+        if (!key) {
+          key = Object.keys(functions).find(k =>
+            name.toLowerCase().startsWith(k) && name.length > k.length);
+          if (key) rest = name.slice(key.length);
+        }
+        if (key) {
+          const save = i;
+          skipSpaces();
+          let arg = '';
+          if (rest) {
+            arg = rest;
+          } else if (s[i] === '(') {
+            i++;
+            arg = parseExpression();
+            skipSpaces();
+            if (s[i] === ')') i++;
+          } else if (s[i] !== undefined) {
+            arg = parsePower();
+          }
+          if (arg !== '') {
+            const kind = functions[key];
+            if (kind === 'EXP') return 'e^{' + arg + '}';
+            if (kind === 'SQRT') return BS + 'sqrt{' + arg + '}';
+            if (kind === 'LN') return BS + 'ln(' + arg + ')';
+            if (kind === 'SIN') return BS + 'sin(' + arg + ')';
+            if (kind === 'COS') return BS + 'cos(' + arg + ')';
+            if (kind === 'TAN') return BS + 'tan(' + arg + ')';
+            if (kind === 'ARCTAN') return BS + 'arctan(' + arg + ')';
+            if (kind === 'ARCSIN') return BS + 'arcsin(' + arg + ')';
+            if (kind === 'ARCCOS') return BS + 'arccos(' + arg + ')';
+          }
+          i = save;
+        }
+        return name;
+      }
+
+      i++;
+      return c;
+    }
+
+    try {
+      const result = parseExpression();
+      skipSpaces();
+      return i >= s.length ? result : text;
+    } catch (error) {
+      return text;
+    }
+  }
+
+  const $ = id => document.getElementById(id);
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  let model;
+  let activeField = null;
+  let selection = [0, 0];
+  let currentTool = '';
+  let busy = false;
+
+  const examples = {
+    inverse: {
+      formula: '\\frac{1}{x}',
+      domain: 'D = ]−∞ ; 0[ ∪ ]0 ; +∞[',
+      points: [
+        { x: '-\\infty', kind: 'open', right: '0' },
+        { x: '0', kind: 'excluded', left: '-\\infty', right: '+\\infty' },
+        { x: '+\\infty', kind: 'open', left: '0' }
+      ],
+      intervals: [
+        { sign: '-', arrow: 'down' },
+        { sign: '-', arrow: 'down' }
+      ]
+    },
+    quadratic: {
+      formula: 'x^2-4x+3',
+      domain: 'D = [−1 ; 5]',
+      points: [
+        { x: '-1', kind: 'normal', value: '8', derivative: '' },
+        { x: '2', kind: 'zero', value: '-1' },
+        { x: '5', kind: 'normal', value: '8', derivative: '' }
+      ],
+      intervals: [
+        { sign: '-', arrow: 'down' },
+        { sign: '+', arrow: 'up' }
+      ]
+    },
+    absolute: {
+      formula: '|x|',
+      domain: 'D = [−3 ; 3]',
+      points: [
+        { x: '-3', kind: 'normal', value: '3' },
+        { x: '0', kind: 'nd', value: '0' },
+        { x: '3', kind: 'normal', value: '3' }
+      ],
+      intervals: [
+        { sign: '-', arrow: 'down' },
+        { sign: '+', arrow: 'up' }
+      ]
+    }
+  };
+
+  function rememberField(field) {
+    field.addEventListener('focus', () => {
+      activeField = field;
+      selection = [field.selectionStart || 0, field.selectionEnd || 0];
+    });
+
+    for (const event of ['keyup', 'click', 'select', 'blur']) {
+      field.addEventListener(event, () => {
+        if (activeField === field) {
+          selection = [field.selectionStart || 0, field.selectionEnd || 0];
+        }
+      });
+    }
+  }
+
+  function makeInput(value, onChange) {
+    const field = document.createElement('input');
+    field.value = value || '';
+    field.spellcheck = false;
+    rememberField(field);
+    field.addEventListener('input', () => onChange(friendlyToLatex(field.value)));
+    return field;
+  }
+
+  function makeSelect(options, value, onChange) {
+    const select = document.createElement('select');
+    for (const [key, label] of options) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = label;
+      select.append(option);
+    }
+    select.value = value;
+    select.addEventListener('change', () => onChange(select.value));
+    return select;
+  }
+
+  function isExcluded(point) {
+    return point.kind === 'excluded' || point.kind === 'open';
+  }
+
+  function buildEditors() {
+    activeField = null;
+    $('formula').value = model.formula;
+    $('domain').value = model.domain;
+    $('points').replaceChildren();
+
+    model.points.forEach((point, index) => {
+      const row = document.createElement('tr');
+
+      function addCell(element) {
+        const cell = document.createElement('td');
+        cell.append(element);
+        row.append(cell);
+      }
+
+      addCell(makeInput(point.x, value => point.x = value));
+
+      addCell(makeSelect([
+        ['normal', 'Point ordinaire'],
+        ['zero', 'Zéro de la dérivée'],
+        ['nd', 'Non dérivable'],
+        ['excluded', 'Valeur exclue'],
+        ['open', 'Borne ouverte / infini']
+      ], point.kind, value => {
+        point.kind = value;
+        buildEditors();
+      }));
+
+      const derivativeField = makeInput(
+        point.derivative,
+        value => point.derivative = value
+      );
+      derivativeField.disabled = point.kind !== 'normal';
+      derivativeField.placeholder = point.kind === 'zero' ? '0' :
+        point.kind === 'nd' ? 'ND' :
+        point.kind === 'normal' ? 'Facultatif' : 'Sans objet';
+      addCell(derivativeField);
+
+      for (const key of ['value', 'left', 'right']) {
+        const field = makeInput(point[key], value => point[key] = value);
+        field.disabled = key === 'value'
+          ? isExcluded(point)
+          : !isExcluded(point)
+            || (key === 'left' && index === 0)
+            || (key === 'right' && index === model.points.length - 1);
+        addCell(field);
+      }
+
+      const remove = document.createElement('button');
+      remove.textContent = 'Retirer';
+      remove.disabled = index === 0 || index === model.points.length - 1;
+      remove.onclick = () => {
+        model.points.splice(index, 1);
+        model.intervals.splice(index - 1, 2, { sign: '', arrow: '' });
+        buildEditors();
+      };
+      addCell(remove);
+      $('points').append(row);
+    });
+
+    $('intervals').replaceChildren();
+    model.intervals.forEach((interval, index) => {
+      const block = document.createElement('div');
+      block.className = 'interval';
+      const heading = document.createElement('div');
+      heading.textContent = `Intervalle ${index + 1} : entre les points ${index + 1} et ${index + 2}`;
+      block.append(heading);
+
+      const choices = [
+        ['sign', 'Signe de f′', [
+          ['', 'Non renseigné'], ['+', '+'], ['-', '−'], ['0', '0 partout']
+        ]],
+        ['arrow', 'Variation', [
+          ['', 'Non renseignée'], ['up', 'Croissante ↗'],
+          ['down', 'Décroissante ↘'], ['flat', 'Constante →']
+        ]]
+      ];
+
+      for (const [key, title, options] of choices) {
+        const label = document.createElement('label');
+        label.textContent = title + ' ';
+        label.append(makeSelect(options, interval[key], value => interval[key] = value));
+        block.append(label);
+      }
+      $('intervals').append(block);
+    });
+  }
+
+  async function mathSVG(expression) {
+    if (!window.MathJax || !MathJax.tex2svgPromise) {
+      throw new Error('MathJax indisponible : une connexion Internet est nécessaire au chargement. Rechargez la page.');
+    }
+    await MathJax.startup.promise;
+    const container = await MathJax.tex2svgPromise(expression, { display: false });
+    const svg = container.querySelector('svg');
+    if (!svg || svg.querySelector('[data-mml-node="merror"]')) {
+      throw new Error('Notation non reconnue : ' + expression);
+    }
+    return svg;
+  }
+
+  function svgElement(tag, attributes, parent) {
+    const element = document.createElementNS(SVG_NS, tag);
+    for (const [key, value] of Object.entries(attributes)) {
+      element.setAttribute(key, value);
+    }
+    if (parent) parent.append(element);
+    return element;
+  }
+
+  async function putMath(parent, expression, x, y) {
+    if (!expression) return;
+    const svg = await mathSVG(expression);
+    const box = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+    let height = 29;
+    let width = height * box[2] / box[3];
+    if (width > 145) {
+      height *= 145 / width;
+      width = 145;
+    }
+    svg.setAttribute('x', x - width / 2);
+    svg.setAttribute('y', y - height / 2);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('color', 'black');
+    parent.append(svg);
+  }
+
+  async function renderTable() {
+    if (busy) return false;
+    busy = true;
+    $('status').textContent = 'Mise en forme…';
+
+    try {
+      const data = JSON.parse(JSON.stringify(model));
+      const count = data.points.length;
+      const width = 320 + 330 * (count - 1);
+      const height = 365;
+      const positions = data.points.map((_, index) => 230 + 330 * index);
+      const svg = svgElement('svg', {
+        xmlns: SVG_NS,
+        viewBox: `0 0 ${width} ${height}`,
+        role: 'img',
+        'aria-label': 'Tableau de variations construit par l’utilisateur'
+      });
+
+      const defs = svgElement('defs', {}, svg);
+      const marker = svgElement('marker', {
+        id: 'arrowhead', viewBox: '0 0 10 10', refX: 9, refY: 5,
+        markerWidth: 6, markerHeight: 6, orient: 'auto'
+      }, defs);
+      svgElement('path', { d: 'M0 0L10 5L0 10Z', fill: 'black' }, marker);
+
+      function line(x1, y1, x2, y2, extra = {}) {
+        svgElement('line', {
+          x1, y1, x2, y2, stroke: 'black', 'stroke-width': 1.4, ...extra
+        }, svg);
+      }
+
+      svgElement('rect', {
+        x: 1, y: 1, width: width - 2, height: height - 2,
+        fill: 'white', stroke: 'black'
+      }, svg);
+      line(145, 1, 145, height - 1);
+      line(1, 68, width - 1, 68);
+      line(1, 133, width - 1, 133);
+      await putMath(svg, 'x', 72, 34);
+      await putMath(svg, "f'(x)", 72, 101);
+      await putMath(svg, 'f(x)', 72, 245);
+
+      const starts = [];
+      const ends = [];
+      let first = 0;
+
+      while (first < count - 1) {
+        let last = first;
+        const levels = [0];
+        while (last < count - 1) {
+          const arrow = data.intervals[last].arrow;
+          levels.push(levels.at(-1) + (arrow === 'up' ? 1 : arrow === 'down' ? -1 : 0));
+          last++;
+          if (isExcluded(data.points[last])) break;
+        }
+        const minimum = Math.min(...levels);
+        const maximum = Math.max(...levels);
+        const y = level => maximum === minimum
+          ? 245
+          : 300 - 120 * (level - minimum) / (maximum - minimum);
+
+        for (let index = first; index < last; index++) {
+          starts[index] = y(levels[index - first]);
+          ends[index] = y(levels[index - first + 1]);
+        }
+        first = last;
+      }
+
+      for (let index = 0; index < count; index++) {
+        const point = data.points[index];
+        const x = positions[index];
+        await putMath(svg, point.x, x, 34);
+
+        if (isExcluded(point)) {
+          line(x - 4, 70, x - 4, height - 2);
+          line(x + 4, 70, x + 4, height - 2);
+        } else {
+          if (point.kind === 'zero') {
+            await putMath(svg, '0', x, 101);
+          } else if (point.kind === 'normal') {
+            await putMath(svg, point.derivative, x, 101);
+          } else if (point.kind === 'nd') {
+            const text = svgElement('text', {
+              x, y: 108, 'text-anchor': 'middle',
+              'font-family': 'Arial', 'font-size': 21
+            }, svg);
+            text.textContent = 'ND';
+          }
+          await putMath(svg, point.value, x,
+            index < count - 1 ? starts[index] : ends[index - 1]);
+        }
+      }
+
+      for (let index = 0; index < count - 1; index++) {
+        const left = data.points[index];
+        const right = data.points[index + 1];
+        const interval = data.intervals[index];
+        const xLeft = positions[index] + (isExcluded(left) ? 55 : 0);
+        const xRight = positions[index + 1] - (isExcluded(right) ? 55 : 0);
+
+        await putMath(svg, interval.sign,
+          (positions[index] + positions[index + 1]) / 2, 101);
+        if (isExcluded(left)) {
+          await putMath(svg, left.right, xLeft, starts[index]);
+        }
+        if (isExcluded(right)) {
+          await putMath(svg, right.left, xRight, ends[index]);
+        }
+        if (interval.arrow) {
+          line(xLeft + 48, starts[index], xRight - 48, ends[index], {
+            'stroke-width': 2, 'marker-end': 'url(#arrowhead)'
+          });
+        }
+      }
+
+      const title = data.formula ? await mathSVG('f(x)=' + data.formula) : null;
+      $('outputTitle').replaceChildren();
+      if (title) $('outputTitle').append(title);
+      $('output').replaceChildren(svg);
+      $('outputDomain').textContent = data.domain;
+      $('status').textContent = 'Tableau actualisé. Les réponses ne sont pas vérifiées mathématiquement.';
+      return true;
+    } catch (error) {
+      $('status').textContent = error.message;
+      return false;
+    } finally {
+      busy = false;
+    }
+  }
+
+  function insertText(text) {
+    if (!activeField || !activeField.isConnected) {
+      $('status').textContent = 'Cliquez d’abord dans le champ mathématique à compléter.';
+      return;
+    }
+    activeField.setRangeText(text, selection[0], selection[1], 'end');
+    activeField.dispatchEvent(new Event('input', { bubbles: true }));
+    activeField.focus();
+    selection = [activeField.selectionStart, activeField.selectionEnd];
+  }
+
+  function toolExpression() {
+    const a = friendlyToLatex($('argA').value);
+    const b = friendlyToLatex($('argB').value);
+    if (currentTool === 'fraction') return '\\frac{' + a + '}{' + b + '}';
+    if (currentTool === 'power') return '{' + a + '}^{' + b + '}';
+    if (currentTool === 'exponential') return 'e^{' + a + '}';
+    return '\\sqrt{' + a + '}';
+  }
+
+  rememberField($('formula'));
+  $('formula').oninput = () => model.formula = friendlyToLatex($('formula').value);
+  $('domain').oninput = () => model.domain = $('domain').value;
+
+  document.querySelectorAll('[data-insert]').forEach(button => {
+    button.onclick = () => insertText(button.dataset.insert);
+  });
+
+  document.querySelectorAll('[data-tool]').forEach(button => {
+    button.onclick = () => {
+      if (!activeField || !activeField.isConnected) {
+        $('status').textContent = 'Cliquez d’abord dans le champ à compléter.';
+        return;
+      }
+      currentTool = button.dataset.tool;
+      const names = {
+        fraction: ['Fraction', 'Numérateur', 'Dénominateur'],
+        power: ['Puissance', 'Base', 'Exposant'],
+        exponential: ['Exponentielle', 'Exposant', ''],
+        root: ['Racine carrée', 'Expression sous la racine', '']
+      };
+      const labels = names[currentTool];
+      $('dialogTitle').textContent = labels[0];
+      $('labelA').textContent = labels[1];
+      $('labelB').textContent = labels[2];
+      $('secondArgument').hidden = !labels[2];
+      $('argA').value = '';
+      $('argB').value = '';
+      $('dialogPreview').replaceChildren();
+      $('dialog').showModal();
+    };
+  });
+
+  $('dialogShow').onclick = async () => {
+    try {
+      $('dialogPreview').replaceChildren(await mathSVG(toolExpression()));
+    } catch (error) {
+      $('dialogPreview').textContent = error.message;
+    }
+  };
+  $('dialogInsert').onclick = () => {
+    insertText(toolExpression());
+    $('dialog').close();
+  };
+  $('dialogCancel').onclick = () => $('dialog').close();
+  $('previewField').onclick = async () => {
+    if (!activeField) return;
+    try {
+      $('preview').replaceChildren(await mathSVG(friendlyToLatex(activeField.value)));
+    } catch (error) {
+      $('status').textContent = error.message;
+    }
+  };
+
+  $('add').onclick = () => {
+    model.points.splice(model.points.length - 1, 0, {
+      x: 'a', kind: 'normal', value: '', derivative: ''
+    });
+    model.intervals.splice(model.intervals.length - 1, 1,
+      { sign: '', arrow: '' }, { sign: '', arrow: '' });
+    buildEditors();
+  };
+
+  $('new').onclick = () => {
+    model = {
+      formula: '', domain: '',
+      points: [
+        { x: 'a', kind: 'normal', value: '', derivative: '' },
+        { x: 'b', kind: 'normal', value: '', derivative: '' }
+      ],
+      intervals: [{ sign: '', arrow: '' }]
+    };
+    buildEditors();
+    renderTable();
+  };
+
+  $('load').onclick = () => {
+    model = JSON.parse(JSON.stringify(examples[$('example').value]));
+    buildEditors();
+    renderTable();
+  };
+
+  function download(contents, type, name) {
+    const url = URL.createObjectURL(new Blob([contents], { type }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  $('save').onclick = () => download(
+    JSON.stringify(model, null, 2), 'application/json', 'construction.json'
+  );
+  $('open').onclick = () => $('file').click();
+
+  $('file').onchange = async () => {
+    try {
+      const file = $('file').files[0];
+      if (!file) return;
+      const data = JSON.parse(await file.text());
+      const kinds = ['normal', 'zero', 'nd', 'excluded', 'open'];
+      if (typeof data.formula !== 'string' || typeof data.domain !== 'string'
+        || !Array.isArray(data.points) || data.points.length < 2
+        || data.points.length > 30 || !Array.isArray(data.intervals)
+        || data.intervals.length !== data.points.length - 1) {
+        throw new Error('Fichier de construction non valide.');
+      }
+      for (const point of data.points) {
+        if (!point || typeof point.x !== 'string' || !kinds.includes(point.kind)) {
+          throw new Error('Point non valide.');
+        }
+        for (const key of ['value', 'derivative', 'left', 'right']) {
+          if (point[key] !== undefined && typeof point[key] !== 'string') {
+            throw new Error('Valeur non valide.');
+          }
+        }
+      }
+      for (const interval of data.intervals) {
+        if (!interval || !['', '+', '-', '0'].includes(interval.sign)
+          || !['', 'up', 'down', 'flat'].includes(interval.arrow)) {
+          throw new Error('Intervalle non valide.');
+        }
+      }
+      model = data;
+      buildEditors();
+      await renderTable();
+    } catch (error) {
+      $('status').textContent = error.message;
+    }
+    $('file').value = '';
+  };
+
+  $('render').onclick = renderTable;
+  $('print').onclick = async () => {
+    if (await renderTable()) window.print();
+  };
+  $('export').onclick = async () => {
+    if (!await renderTable()) return;
+    const svg = $('output').querySelector('svg');
+    download(new XMLSerializer().serializeToString(svg),
+      'image/svg+xml;charset=utf-8', 'tableau-variations.svg');
+  };
+
+  model = JSON.parse(JSON.stringify(examples.inverse));
+  buildEditors();
+  window.addEventListener('load', renderTable);
+</script>
+</body>
+</html>

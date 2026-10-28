@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon MathType Visuel</title>
+    
+    <!-- Chargement immédiat du moteur d'édition graphique professionnel -->
+    <script src="https://unpkg.com/mathlive"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --border: #cbd5e1;
+            --text: #1e293b;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 22px;
+            color: var(--primary);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .group-title {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #64748b;
+            min-width: 130px;
+        }
+        .btn-math {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 16px;
+            min-width: 55px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .btn-math:hover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+        .btn-text-mode {
+            background: #cbd5e1;
+            font-weight: bold;
+            border-color: #94a3b8;
+        }
+        .btn-return-mode {
+            background: #fed7aa;
+            font-weight: bold;
+            border-color: #f97316;
+        }
+        
+        /* 🚨 CONTENEUR AVEC ALERTE VISUELLE LIGNE ROUGE A4 */
+        .editor-container {
+            margin-bottom: 20px;
+            position: relative;
+            background-color: #fafafa;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            
+            /* Ligne pointillée rouge placée à 740px (Bord de page A4) */
+            background-image: linear-gradient(to right, transparent 740px, #ef4444 740px, #ef4444 742px, transparent 742px);
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #475569;
+        }
+        math-field {
+            width: 100%;
+            min-height: 200px;
+            font-size: 28px;
+            background: transparent !important; /* Laisse passer le repère rouge en dessous */
+            border: none !important; /* Géré par le conteneur */
+            padding: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .print-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .print-btn:hover {
+            background: #059669;
+        }
+
+        /* ==========================================================================
+           ⚠️ ZONE D'IMPRESSION NETTOYÉE : TOUS les boutons s'effacent ici
+           ========================================================================== */
+        @media print {
+            @page {
+                margin: 2cm; /* Crée une marge blanche élégante tout autour du document */
+            }
+            body { 
+                background: white; 
+                padding: 0; 
+            }
+            .container { 
+                box-shadow: none; 
+                padding: 0; 
+                max-width: 100%; 
+            }
+            /* Masque le titre, la barre d'outils, le texte d'aide ET le bouton orange + bouton vert */
+            h1, .toolbar, label, .print-btn, .btn-return-mode { 
+                display: none !important; 
+            }
+            .editor-container {
+                border: none !important;
+                background-image: none !important; /* Efface la ligne rouge sur le PDF */
+                background-color: transparent !important;
+            }
+            math-field { 
+                background: white !important; 
+                font-size: 24px; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Mon MathType Visuel</h1>
+
+        <!-- Barre d'outils matérielle directe -->
+        <div class="toolbar">
+            <div class="tool-group">
+                <div class="group-title">Mode Écriture</div>
+                <button type="button" class="btn-math btn-text-mode" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\text{#?}']); event.preventDefault();">Abc Texte</button>
+                <button type="button" class="btn-math btn-return-mode" onmousedown="document.getElementById('formula-field').executeCommand('addRowAfter'); event.preventDefault();">Saut ligne (↵)</button>
+            </div>
+
+            <div class="tool-group">
+                <div class="group-title">Modèles courants</div>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\frac{#?}{#?}']); event.preventDefault();">⬠/⬠</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\sqrt{#?}']); event.preventDefault();">√⬠</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '#?^{#?}']); event.preventDefault();">⬠<sup>⬠</sup></button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '#?_{\#?}']); event.preventDefault();">⬠<sub>⬠</sub></button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\int_{#?}^{#?}']); event.preventDefault();">∫⬠</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\sum_{#?}^{#?}']); event.preventDefault();">∑⬠</button>
+            </div>
+
+            <div class="tool-group">
+                <div class="group-title">Matrices & Systèmes</div>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\begin{pmatrix} #? & #? \\\\ #? & #? \\end{pmatrix}']); event.preventDefault();">Matrice 2x2</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\begin{matrix} #? & #? & #? \\\\ #? & #? & #? \\\\ #? & #? & #? \\end{matrix}']); event.preventDefault();">Matrice 3x3</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\begin{cases} #? \\\\ #? \\end{cases}']); event.preventDefault();">Système {</button>
+            </div>
+            
+            <div class="tool-group">
+                <div class="group-title">Symboles rapides</div>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\pm']); event.preventDefault();">±</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\times']); event.preventDefault();">×</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\pi']); event.preventDefault();">π</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\infty']); event.preventDefault();">∞</button>
+                <button type="button" class="btn-math" onmousedown="document.getElementById('formula-field').executeCommand(['insert', '\\neq']); event.preventDefault();">≠</button>
+            </div>
+        </div>
+
+        <!-- Zone d'écriture graphique entourée de sa boîte de sécurité -->
+        <label>Zone d'écriture MathType (La barre d'espace fonctionne normalement) :</label>
+        <div class="editor-container">
+            <math-field id="formula-field" virtual-keyboard-mode="manual" math-mode-space="\;" key-bindings='[{"key": "enter", "command": "addRowAfter"}]'></math-field>
+        </div>
+
+        <!-- Section du bouton vert d'exportation -->
+        <div style="text-align: right;">
+            <button type="button" class="print-btn" onclick="window.print()">Exporter en PDF</button>
+        </div>
+    </div>
+
+</body>
+</html>
+

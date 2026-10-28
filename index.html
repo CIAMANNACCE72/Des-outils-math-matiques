@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mes outils de mathématiques</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .menu {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.1);
+      text-align: center;
+      max-width: 800px;
+      width: 90%;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .outils {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    a {
+      display: block;
+      padding: 25px 20px;
+      background: #eff6ff;
+      border: 2px solid #bfdbfe;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #1e3a8a;
+      font-weight: 700;
+      transition: transform .15s, box-shadow .15s;
+    }
+
+    a:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+
+    .icone {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .description {
+      font-weight: 400;
+      font-size: .95rem;
+      margin-top: 8px;
+      color: #475569;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="menu">
+    <h1>Mes outils de mathématiques</h1>
+
+    <div class="outils">
+      <a href="editeur-equation.html.html" target="_blank">
+        <span class="icone">✍️</span>
+        Éditeur d’équations
+        <span class="description">
+          Écrire des formules mathématiques et du texte.
+        </span>
+      </a>
+
+      <a href="grapheur.html" target="_blank">
+        <span class="icone">📈</span>
+        Traceur de courbes
+        <span class="description">
+          Tracer une fonction et calculer une aire.
+        </span>
+      </a>
+
+      <a href="atelier_variations_sans_latex.html" target="_blank">
+        <span class="icone">📊</span>
+        Tableau de variations
+        <span class="description">
+          Construire le tableau de variations d’une fonction.
+        </span>
+      </a>
+    </div>
+  </main>
+</body>
+</html>

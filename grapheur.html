@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon Traceur de Graphiques — GeoGebra Lite</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@12.4.2/lib/browser/math.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .container {
+      max-width: 950px;
+      margin: 30px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 9px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+    .btn-toggle { background: #e2e8f0; }
+    .btn-active { background: #dcfce7; color: #166534; }
+    .btn-inactive { background: #fee2e2; color: #991b1b; }
+
+    canvas {
+      width: 100%;
+      height: 450px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: white;
+      display: block;
+    }
+
+    .results {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Mon Traceur de Graphiques — GeoGebra Lite</h1>
+
+    <div class="controls">
+      <div>
+        <label for="equation">Équation de la fonction f(x)</label>
+        <input type="text" id="equation" value="x^2">
+      </div>
+
+      <div>
+        <label for="traceMin">X minimum</label>
+        <input type="text" id="traceMin" value="-5">
+      </div>
+
+      <div>
+        <label for="traceMax">X maximum</label>
+        <input type="text" id="traceMax" value="5">
+      </div>
+
+      <div>
+        <label for="borneA">Borne minimale a</label>
+        <input type="text" id="borneA" value="0">
+      </div>
+
+      <div>
+        <label for="borneB">Borne maximale b</label>
+        <input type="text" id="borneB" value="2">
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="btnTracer" class="btn-primary">Tracer</button>
+      <button id="btnAire" class="btn-toggle btn-active">🟢 Aire : Activée</button>
+      <button id="btnPoint" class="btn-toggle btn-active">🟢 Point : Activé</button>
+      <button id="btnImage" class="btn-secondary">Sauvegarder l’image</button>
+<label>
+  <input type="checkbox" id="afficherDerivee">
+  Afficher f'(x)
+</label>
+    </div>
+
+    <canvas id="graphCanvas"></canvas>
+
+    <div class="results">
+      <div>Valeur estimée de l’aire : <span id="valeurAire">--</span></div>
+      <div>Coordonnées du point : <span id="coordonneesPoint">Survolez le graphique</span></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
