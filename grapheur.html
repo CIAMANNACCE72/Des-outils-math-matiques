@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mon Traceur Multi-Courbes — Lycée Edition</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@12.4.2/lib/browser/math.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      font-size: 1.1rem;
+      color: #2563eb;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .function-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .function-row input[type="text"] {
+      flex-grow: 1;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    button {
+      padding: 9px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+    .btn-danger { background: #ef4444; color: white; padding: 8px 12px; }
+    .btn-toggle { background: #e2e8f0; }
+    .btn-active { background: #dcfce7; color: #166534; }
+    .btn-inactive { background: #fee2e2; color: #991b1b; }
+
+    canvas {
+      width: 100%;
+      height: 450px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: white;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    .suite-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: #92400e;
+    }
+
+    .tangente-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: #1e40af;
+    }
+
+    .table-container {
+      max-height: 220px;
+      overflow-y: auto;
+      margin-top: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+
+    table.val-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 0.9rem;
+      background: white;
+    }
+
+    table.val-table th, table.val-table td {
+      border: 1px solid #e2e8f0;
+      padding: 6px;
+    }
+
+    table.val-table th {
+      background: #f1f5f9;
+      position: sticky;
+      top: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Mon Traceur Multi-Courbes — Lycée Edition</h1>
+
+    <!-- Gestion des fonctions -->
+    <div class="panel">
+      <h3>Fonctions f(x)</h3>
+      <div id="listFonctions"></div>
+      <button type="button" id="btnAjouterFonction" class="btn-secondary" style="margin-top: 5px;">+ Ajouter une fonction</button>
+    </div>
+
+    <!-- Paramètres du repère -->
+    <div class="panel">
+      <h3>Paramètres de la fenêtre graphique</h3>
+      <div class="controls">
+        <div>
+          <label for="traceMin">X minimum</label>
+          <input type="text" id="traceMin" value="-2">
+        </div>
+        <div>
+          <label for="traceMax">X maximum</label>
+          <input type="text" id="traceMax" value="6">
+        </div>
+        <div>
+          <label for="yMinInput">Y minimum</label>
+          <input type="text" id="yMinInput" value="-2">
+        </div>
+        <div>
+          <label for="yMaxInput">Y maximum</label>
+          <input type="text" id="yMaxInput" value="6">
+        </div>
+        <div>
+          <label for="borneA">Borne a (Aire)</label>
+          <input type="text" id="borneA" value="0">
+        </div>
+        <div>
+          <label for="borneB">Borne b (Aire)</label>
+          <input type="text" id="borneB" value="2">
+        </div>
+        <div>
+          <label for="selectCourbeAire">Courbe ciblée</label>
+          <select id="selectCourbeAire"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paramètres des Suites Numériques -->
+    <div class="panel">
+      <h3>Étude de suite récurrente (u<sub>n+1</sub> = f(u<sub>n</sub>))</h3>
+      <div class="controls">
+        <div>
+          <label for="suiteU0">Valeur initiale u<sub>0</sub></label>
+          <input type="text" id="suiteU0" value="0.5">
+        </div>
+        <div>
+          <label for="suiteN">Nombre de termes N</label>
+          <input type="text" id="suiteN" value="5">
+        </div>
+      </div>
+    </div>
+
+    <!-- Barre d'outils / Boutons -->
+    <div class="buttons">
+      <button id="btnTracer" class="btn-primary">Tracer / Actualiser</button>
+      <button id="btnAire" class="btn-toggle btn-active">🟢 Aire : Activée</button>
+      <button id="btnPoint" class="btn-toggle btn-active">🟢 Point : Activé</button>
+      <button id="btnTangente" class="btn-toggle btn-inactive">🔴 Tangente : Désactivée</button>
+      <button id="btnSuite" class="btn-toggle btn-inactive">🔴 Suite (u<sub>n+1</sub>=f(u<sub>n</sub>)) : Désactivée</button>
+      <button id="btnImage" class="btn-secondary">Sauvegarder l’image</button>
+      <label style="display:inline-flex; align-items:center; gap:5px; margin:0; cursor:pointer;">
+        <input type="checkbox" id="afficherDerivee" style="width:auto;">
+        Afficher f'(x)
+      </label>
+    </div>
+
+    <canvas id="graphCanvas"></canvas>
+
+    <div class="results">
+      <div>Valeur estimée de l’aire : <span id="valeurAire">--</span></div>
+      <div>Coordonnées du point : <span id="coordonneesPoint">Survolez le graphique (Cliquez pour fixer)</span></div>
+      
+      <!-- Équation de la tangente fixe -->
+      <div id="equationTangenteContainer" style="display: none;">
+        <span>Équation de la tangente fixée :</span>
+        <div id="equationTangenteText" class="tangente-box">--</div>
+      </div>
+
+      <!-- Valeurs de la suite -->
+      <div id="suiteResultatContainer" style="display: none;">
+        <span>Valeurs des termes de la suite :</span>
+        <div id="valeursSuite" class="suite-box">--</div>
+      </div>
+
+      <!-- Tableau de valeurs -->
+      <div style="margin-top: 10px;">
+        <span>Tableau de valeurs de la fonction :</span>
+        <div class="controls" style="margin-top: 8px; grid-template-columns: 1fr 1fr 1fr auto;">
+          <div>
+            <label for="tabDebut">Début</label>
+            <input type="text" id="tabDebut" value="0">
+          </div>
+          <div>
+            <label for="tabFin">Fin</label>
+            <input type="text" id="tabFin" value="5">
+          </div>
+          <div>
+            <label for="tabPas">Pas</label>
+            <input type="text" id="tabPas" value="1">
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button id="btnCalculerTableau" class="btn-secondary" style="width: 100%;">Générer</button>
+          </div>
+        </div>
+        <div id="tableauValeursWrapper" class="table-container">
+          <p style="text-align: center; color: #64748b; padding: 10px; margin:0;">Cliquez sur "Générer" pour afficher le tableau.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
